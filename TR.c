@@ -2,15 +2,10 @@
 #include "util.h"
 #include "phy.h"
 #include "TR.h"
-
-char packet[] = { 0x10,
-'1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f' };
+#include "dma.h"
 
 void initRF()
 {
-  int i;
-  for( i=0;i<0x11;i++ )
-    RFD = packet[i];
   /*
   
   Bits 0¨C6: FREQ
@@ -29,7 +24,7 @@ and MDMTEST1 registers.
 1: Leave synthesizer running after task is done.
   
   */
-  BLE_CHAN = (char)( 2400 - 2379  )+0x80;
+  BLE_CHAN = (char)( 2490 - 2379  )+0x80; //2.4G
   /*
 
   Bits 0¨C1: MODE (operation mode)
@@ -74,7 +69,7 @@ new packets
 1: Recalibrate the synthesizer only when the task
 starts
   */
-  BLE_CHANMAP = 0x04;
+  BLE_CHANMAP = 0x04; //Repeat
 
   /*
   Bit 0: AUTOFLUSH_IGN
@@ -146,23 +141,20 @@ Bits 3-7: Reserved, always write 0.
   */
   BLE_MAXNACK = 0;
   
-  MDMCTRL0 = 0x6;
+  MDMCTRL0 = 0x6; // 2M 500K
   
+  TXPOWER = 0xe1;
   LLECTRL = 1;
   
-  RFST = CMD_TX;
   
 }
 
 void sendPacket( char *data, int len )
 {
-  int i,j;
   
   RFIRQF1 = 0;
   while( RFST!=0 );
   RFST = 0x91;
-  i = XREG(0x618A);
-  i = XREG(0x618B);
   XREG(0x6001) = 0x4;
   XREG(0x600E) = 0;
   XREG(0x600F) = 0;
@@ -170,31 +162,17 @@ void sendPacket( char *data, int len )
   XREG(0x618B) = 1;
   XREG(0x61D1) = 0x10;
   XREG(0x61C6) = 0x33;
-  RFD = len&0xff;
-  for( i=0;i<len;i++ )
-  {
-    RFD = data[i];
-  }
+  setDMATask( data, len );
+  
+  while( RFST!=0 );
   RFST = CMD_TX;
-  for( j=0;j<255;j++ )
-  {
-    if((XREG(0x61C5)&0x20)==0)
-    {
-      RFD = len&0xff;
-      for( i=0;i<len;i++ )
-      {
-        RFD = data[i];
-      }
-    }
-    else
-    {
-      while((XREG(0x61C5)&0x20)!=0);
-    }
-  }
-  while((RFIRQF1&0x40)==0);
-  printByte("ENDCAUSE",XREG(0x607f));
+  
+  while(DMALeft()!=0);
+  
+  //printByte("ENDCAUSE",XREG(0x607f));
 
 }
+
 void dumpRF()
 {
   printByte("CHAN",BLE_CHAN);   // BLE_LSI_CHAN
