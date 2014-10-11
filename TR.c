@@ -164,12 +164,6 @@ void sendPacket( char *data, int len )
   XREG(0x61C6) = 0x33;
   setDMATask( data, len );
   
-  while( RFST!=0 );
-  RFST = CMD_TX;
-  
-  while(DMALeft()!=0);
-  
-  //printByte("ENDCAUSE",XREG(0x607f));
 
 }
 

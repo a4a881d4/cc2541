@@ -3,7 +3,7 @@
 #include "TR.h"
 #include "dma.h"
 
-char xbuf[256];
+__xdata char xbuf[256];
 void main( void )
 {
   int i,k;
@@ -23,8 +23,13 @@ void main( void )
   while(1)
   {
     sendPacket(xbuf,256);
-    DelayMS(2);
+    DelayMS(1200);
     DMAReport();
+    printByte("TXFIFOCNT",_XREG619C);
+    
+    printByte("TXFIRST_PTR",XREG(0x61a1));
+    printByte("TXLAST_PTR",XREG(0x61a2));
+    
     k++;
     if( (k&0xff)==0 )
     {

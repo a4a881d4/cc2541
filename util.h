@@ -10,5 +10,6 @@ void InitUart();
 void UartSendString(char *Data, int len);
 void uartSendString(char *Data);
 void printByte( char *str, char A );
+void dump( int addr, int len );
 
 #endif

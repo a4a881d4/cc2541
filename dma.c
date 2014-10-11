@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "util.h"
+#include "TR.h"
 
 typedef struct DMAConfigure {
   char srcH;
@@ -17,15 +18,18 @@ typedef struct DMAConfigure {
 struct DMATaskPending {
   int left;
   int head;
-} aDMA0;
+  char done;
+};
 
-DMACONF DMA0;
+__xdata struct DMATaskPending aDMA0;
+
+__xdata DMACONF DMA0;
 
 void initDMARF( DMACONF *pconf )
 {
-  pconf->desH = 0;
+  pconf->desH = 0x70;
   pconf->desL = 0xD9;
-  pconf->mode = 11;
+  pconf->mode = 0x20|11;
   pconf->misc = 0x4a; // enable intr
   RFFDMA1 = 0x16;//: Tx FIFO is read when its size equals RFTXFTHRS.
   aDMA0.head = 0x1000;
@@ -49,6 +53,7 @@ void setDMATask( char *src, int len )
   initDMARF( &DMA0 );
   aDMA0.left = len;
   aDMA0.head = (int)src;
+  aDMA0.done = 2;
   if( aDMA0.left>0x40 )
   {
     setDMARF( &DMA0, aDMA0.head, 0x40 );
@@ -63,14 +68,23 @@ void setDMATask( char *src, int len )
   }
   DMAREQ |= 1;
   DMAIE = 1;
-  IEN1 = 1;
+  EA = 1;
+  
 }
 
-#pragma vector = 0x43
+#pragma vector = DMA_VECTOR
 __interrupt void DMA_ISR( void )
 {
   if( (DMAIRQ&1) == 1 )
   {
+    if( aDMA0.done == 2 )
+    {
+      dump( (int)(&aDMA0),5);
+      dump( (int)(&DMA0),8);
+      while( RFST!=0 );
+      RFST = CMD_TX;
+      aDMA0.done = 1;
+    }
     if( aDMA0.left>0 )
     {
       if( aDMA0.left>0x40 )
@@ -86,8 +100,11 @@ __interrupt void DMA_ISR( void )
         aDMA0.left = 0;
       }
     }
-    DMAIF &= 0xfe;
+    else
+      aDMA0.done = 0;
+    DMAIRQ &= 0xfe;
   }
+  DMAIF = 0;
 }
 
 void DMAReport()
@@ -95,7 +112,17 @@ void DMAReport()
   char cTemp[32];
   sprintf(cTemp,"Left %d\r\n",aDMA0.left);
   uartSendString(cTemp);
+  dump( (int)(&aDMA0),5);
+  dump( (int)(&DMA0),8);
+  printByte("DMAIF",DMAIF);
+  printByte("DMAIRQ",DMAIRQ);
+  printByte("DMAIE",DMAIE);
+  printByte("DMAARM",DMAARM);
+  printByte("DMA0CFGH",DMA0CFGH);
+  printByte("DMA0CFGL",DMA0CFGL);
+  printByte("DMAREQ",DMAREQ);
 }
+
 
 int DMALeft()
 {

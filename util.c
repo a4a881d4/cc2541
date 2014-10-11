@@ -89,3 +89,19 @@ void printByte( char *str, char A )
   sprintf(strTemp,":0x%x\r\n",((int)A)&0xff);
   uartSendString(strTemp);
 }
+
+void dump( int addr, int len )
+{
+  int i;
+  char cTemp[32];
+  char *p = (char *)addr;
+  sprintf(cTemp,"0x%x:\r\n",addr);
+  uartSendString(cTemp);
+  for( i=0;i<len;i++ )
+  {
+    sprintf(cTemp,"%x ",p[i]);
+    uartSendString(cTemp);
+  }
+  uartSendString("\r\n");
+
+}
