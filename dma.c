@@ -25,6 +25,12 @@ __xdata struct DMATaskPending aDMA0;
 
 __xdata DMACONF DMA0;
 
+void resetDMARF()
+{
+  aDMA0.head = 0x1000;
+  aDMA0.left = 0;
+  aDMA0.done = 0;
+}
 void initDMARF( DMACONF *pconf )
 {
   pconf->desH = 0x70;
@@ -32,8 +38,7 @@ void initDMARF( DMACONF *pconf )
   pconf->mode = 0x20|11;
   pconf->misc = 0x4a; // enable intr
   RFFDMA1 = 0x16;//: Tx FIFO is read when its size equals RFTXFTHRS.
-  aDMA0.head = 0x1000;
-  aDMA0.left = 0;
+  resetDMARF();
 }
 
 void setDMARF( DMACONF *pconf, int source, char len )
@@ -79,8 +84,8 @@ __interrupt void DMA_ISR( void )
   {
     if( aDMA0.done == 2 )
     {
-      dump( (int)(&aDMA0),5);
-      dump( (int)(&DMA0),8);
+      //dump( (int)(&aDMA0),5);
+      //dump( (int)(&DMA0),8);
       while( RFST!=0 );
       RFST = CMD_TX;
       aDMA0.done = 1;
@@ -127,4 +132,9 @@ void DMAReport()
 int DMALeft()
 {
   return aDMA0.left;
+}
+
+int DMADone()
+{
+  return aDMA0.done;
 }
