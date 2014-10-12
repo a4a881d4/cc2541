@@ -16,10 +16,17 @@ void main( void )
   printByte("RFERRF",RFERRF);
   printByte("RFIRQF0",RFIRQF0);
   printByte("RFIRQF1",RFIRQF1);
+  printByte("BSP",XREG(0x61e9));
+  XREG(0x61e9)=0;
   k=0;
   for( i=0;i<256;i++ )
     xbuf[i]=i;
   xbuf[0] = 255;
+  XREG(0x6195) = 0x4b;
+  XREG(0x6196) = 0x3e;
+  XREG(0x6197) = 0x37;
+  XREG(0x6198) = 0x50;
+  
   resetDMARF();
   while(1)
   {
